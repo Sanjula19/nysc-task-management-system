@@ -4,11 +4,7 @@ header('Content-Type: application/json');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-
-function login(): void
-{
-    include __DIR__ . '/../controllers/AuthController.php';
-}
+include_once __DIR__ . '/../controllers/AuthController.php';
 
 $response = [
     'status' => 'success',
@@ -25,6 +21,19 @@ switch ($uri) {
     case '/login':
         if ($method === 'POST') {
             login();
+            exit;
+        }
+
+        http_response_code(405);
+        $response = [
+            'status' => 'error',
+            'message' => 'Method not allowed.',
+        ];
+        break;
+
+    case '/register':
+        if ($method === 'POST') {
+            register();
             exit;
         }
 
