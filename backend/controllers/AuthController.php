@@ -2,32 +2,23 @@
 
 header('Content-Type: application/json');
 
-function getConnection(): PDO
-{
-    $connection = include __DIR__ . '/../config/db.php';
-
-    if (!$connection instanceof PDO) {
-        throw new Exception('Database connection not available.');
-    }
-
-    return $connection;
-}
+require_once __DIR__ . '/../config/db.php';
 
 function getJsonInput(): array
 {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $data = json_decode(file_get_contents('php://input'), true);
 
-    return is_array($input) ? $input : [];
+    return is_array($data) ? $data : [];
 }
 
 function login(): void
 {
     try {
-        $connection = getConnection();
-        $input = getJsonInput();
+        $pdo = getPDO();
+        $data = getJsonInput();
 
-        $email = trim($input['email'] ?? '');
-        $password = $input['password'] ?? '';
+        $email = trim($data['email'] ?? '');
+        $password = $data['password'] ?? '';
 
         if ($email === '' || $password === '') {
             http_response_code(400);
@@ -38,13 +29,9 @@ function login(): void
             return;
         }
 
-        $statement = $connection->prepare(
-            'SELECT id, name, role_id, password FROM users WHERE email = :email LIMIT 1'
-        );
-        $statement->bindValue(':email', $email, PDO::PARAM_STR);
-        $statement->execute();
-
-        $user = $statement->fetch(PDO::FETCH_ASSOC);
+        $stmt = $pdo->prepare('SELECT user_id, name, role_id, password FROM users WHERE email = :email LIMIT 1');
+        $stmt->execute(['email' => $email]);
+        $user = $stmt->fetch();
 
         if (!$user || !password_verify($password, $user['password'])) {
             http_response_code(401);
@@ -58,15 +45,17 @@ function login(): void
         echo json_encode([
             'status' => 'success',
             'message' => 'Login successful.',
-            'user_id' => (int) $user['id'],
-            'name' => $user['name'],
-            'role_id' => $user['role_id'],
+            'user' => [
+                'id' => (int) $user['user_id'],
+                'name' => $user['name'],
+                'role_id' => (int) $user['role_id'],
+            ],
         ]);
     } catch (Throwable $e) {
         http_response_code(500);
         echo json_encode([
             'status' => 'error',
-            'message' => 'Server error.',
+            'message' => $e->getMessage(),
         ]);
     }
 }
@@ -74,13 +63,13 @@ function login(): void
 function register(): void
 {
     try {
-        $connection = getConnection();
-        $input = getJsonInput();
+        $pdo = getPDO();
+        $data = getJsonInput();
 
-        $name = trim($input['name'] ?? '');
-        $email = trim($input['email'] ?? '');
-        $password = $input['password'] ?? '';
-        $roleId = $input['role_id'] ?? null;
+        $name = trim($data['name'] ?? '');
+        $email = trim($data['email'] ?? '');
+        $password = $data['password'] ?? '';
+        $roleId = $data['role_id'] ?? null;
 
         if ($name === '' || $email === '' || $password === '' || $roleId === null || $roleId === '') {
             http_response_code(400);
@@ -91,23 +80,10 @@ function register(): void
             return;
         }
 
-        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $checkStmt = $pdo->prepare('SELECT user_id FROM users WHERE email = :email LIMIT 1');
+        $checkStmt->execute(['email' => $email]);
 
-        $statement = $connection->prepare(
-            'INSERT INTO users (name, email, password, role_id) VALUES (:name, :email, :password, :role_id)'
-        );
-        $statement->bindValue(':name', $name, PDO::PARAM_STR);
-        $statement->bindValue(':email', $email, PDO::PARAM_STR);
-        $statement->bindValue(':password', $passwordHash, PDO::PARAM_STR);
-        $statement->bindValue(':role_id', (int) $roleId, PDO::PARAM_INT);
-        $statement->execute();
-
-        echo json_encode([
-            'status' => 'success',
-            'message' => 'User registered successfully.',
-        ]);
-    } catch (PDOException $e) {
-        if ($e->getCode() === '23000') {
+        if ($checkStmt->fetch()) {
             http_response_code(409);
             echo json_encode([
                 'status' => 'error',
@@ -116,16 +92,33 @@ function register(): void
             return;
         }
 
-        http_response_code(500);
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+        if ($hashedPassword === false) {
+            throw new RuntimeException('Failed to hash password.');
+        }
+
+        $stmt = $pdo->prepare(
+            'INSERT INTO users (name, email, password, role_id) VALUES (:name, :email, :password, :role_id)'
+        );
+
+        $stmt->execute([
+            'name' => $name,
+            'email' => $email,
+            'password' => $hashedPassword,
+            'role_id' => (int) $roleId,
+        ]);
+
         echo json_encode([
-            'status' => 'error',
-            'message' => 'Server error.',
+            'status' => 'success',
+            'message' => 'User registered successfully.',
+            'user_id' => (int) $pdo->lastInsertId(),
         ]);
     } catch (Throwable $e) {
         http_response_code(500);
         echo json_encode([
             'status' => 'error',
-            'message' => 'Server error.',
+            'message' => $e->getMessage(),
         ]);
     }
 }

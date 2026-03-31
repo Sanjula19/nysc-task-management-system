@@ -3,49 +3,34 @@
 header('Content-Type: application/json');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-include_once __DIR__ . '/../controllers/AuthController.php';
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$requestPath = parse_url($requestUri, PHP_URL_PATH) ?? '/';
+$basePath = '/TMS/nysc-task-management-system/backend/routes/api.php';
+$endpoint = '/';
 
-$response = [
-    'status' => 'success',
-    'method' => $method,
-    'uri' => $uri,
-    'message' => 'API working',
-];
-
-switch ($uri) {
-    case '/api':
-    case '/api.php':
-        break;
-
-    case '/login':
-        if ($method === 'POST') {
-            login();
-            exit;
-        }
-
-        http_response_code(405);
-        $response = [
-            'status' => 'error',
-            'message' => 'Method not allowed.',
-        ];
-        break;
-
-    case '/register':
-        if ($method === 'POST') {
-            register();
-            exit;
-        }
-
-        http_response_code(405);
-        $response = [
-            'status' => 'error',
-            'message' => 'Method not allowed.',
-        ];
-        break;
-
-    default:
-        break;
+if (strpos($requestPath, $basePath) === 0) {
+    $endpoint = substr($requestPath, strlen($basePath));
 }
 
-echo json_encode($response);
+if ($endpoint === '' || $endpoint === false) {
+    $endpoint = '/';
+}
+
+if ($method === 'POST' && $endpoint === '/login') {
+    require_once __DIR__ . '/../controllers/AuthController.php';
+    login();
+    exit;
+}
+
+if ($method === 'POST' && $endpoint === '/register') {
+    require_once __DIR__ . '/../controllers/AuthController.php';
+    register();
+    exit;
+}
+
+echo json_encode([
+    'status' => 'success',
+    'message' => 'API working',
+    'method' => $method,
+    'endpoint' => $endpoint,
+]);
