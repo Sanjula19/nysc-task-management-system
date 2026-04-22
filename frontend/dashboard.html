@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="dashboard-page">
+    <div class="page">
+        <header>
+            <h1>Dashboard</h1>
+            <button id="logoutButton" type="button">Logout</button>
+        </header>
+
+        <main>
+            <section class="panel">
+                <h2>User Info</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Name</span>
+                        <span class="value" id="userName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Role</span>
+                        <span class="value" id="userRole">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Task List</h2>
+                <div class="table-wrap">
+                    <table id="taskTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Deadline</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5">Loading tasks...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="taskDetails" style="display:none;">
+                    <h2>Task Details</h2>
+                    <p id="taskTitle"></p>
+                    <p id="taskDescription"></p>
+
+                    <h3>Comments</h3>
+                    <div id="commentsList"></div>
+
+                    <textarea id="commentInput" placeholder="Write a comment"></textarea>
+                    <button id="addCommentBtn" type="button">Add Comment</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let tasks = [];
+        let currentTaskId = null;
+        const storedUser = localStorage.getItem("user");
+
+        if (!storedUser) {
+            window.location.replace("index.html");
+        } else {
+            let user = null;
+
+            try {
+                user = JSON.parse(storedUser);
+            } catch (error) {
+                localStorage.removeItem("user");
+                window.location.replace("index.html");
+            }
+
+            if (!user) {
+                localStorage.removeItem("user");
+                window.location.replace("index.html");
+            } else {
+                const userId = user.user_id || user.id;
+                const roleId = Number(user.role_id);
+                const user_id = userId;
+                const role_id = roleId;
+                const roleNames = {
+                    1: "Chairman",
+                    2: "Director",
+                    3: "Deputy Director",
+                    4: "Assistant Director"
+                };
+
+                user.user_id = user_id;
+                user.role_id = role_id;
+                currentUser = user;
+
+                document.getElementById("userName").textContent = user.name || "Unknown User";
+                document.getElementById("userRole").textContent = roleNames[roleId] ? `${roleNames[roleId]} (${roleId})` : String(user.role_id || "-");
+
+                document.getElementById("logoutButton").addEventListener("click", function () {
+                    localStorage.clear();
+                    window.location.replace("index.html");
+                });
+
+                loadTasks(user);
+            }
+        }
+
+        document.getElementById("addCommentBtn").addEventListener("click", addComment);
+
+        async function loadTasks(user) {
+            const tbody = document.querySelector("#taskTable tbody");
+            const role_id = user.role_id;
+            let url = "";
+
+            if (role_id == 4) {
+                url = "/TMS/nysc-task-management-system/backend/routes/api.php/tasks/my";
+            } else {
+                url = "/TMS/nysc-task-management-system/backend/routes/api.php/tasks/all";
+            }
+
+            tbody.innerHTML = "<tr><td colspan='5'>Loading tasks...</td></tr>";
+
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "user_id": user.user_id,
+                        "role_id": user.role_id
+                    }
+                });
+
+                const data = await response.json();
+                console.log(data);
+
+                if (!response.ok || data.status !== "success") {
+                    tbody.innerHTML = `<tr><td colspan='5'>${data.message || "Unable to load tasks."}</td></tr>`;
+                    return;
+                }
+
+                if (!data.tasks || data.tasks.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='5'>No tasks found</td></tr>";
+                    return;
+                }
+
+                tasks = data.tasks;
+
+                tbody.innerHTML = data.tasks.map(task => {
+                    return `
+                        <tr onclick="showTaskDetails(${task.task_id})">
+                            <td>${task.task_id}</td>
+                            <td>${task.title}</td>
+                            <td>${task.status}</td>
+                            <td>${task.priority}</td>
+                            <td>${task.deadline}</td>
+                        </tr>
+                    `;
+                }).join("");
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = "<tr><td colspan='5'>Unable to connect to the server.</td></tr>";
+            }
+        }
+
+        async function showTaskDetails(task_id) {
+            console.log("Task clicked:", task_id);
+
+            const task = tasks.find(item => String(item.task_id) === String(task_id));
+
+            if (!task) {
+                console.log("Task not found for details:", task_id);
+                return;
+            }
+
+            currentTaskId = task.task_id;
+            document.getElementById("taskDetails").style.display = "block";
+            document.getElementById("taskTitle").textContent = `Title: ${task.title}`;
+            document.getElementById("taskDescription").textContent = `Description: ${task.description || ""}`;
+
+            await loadComments(task_id);
+        }
+
+        async function loadComments(task_id) {
+            const commentsList = document.getElementById("commentsList");
+            const url = `/TMS/nysc-task-management-system/backend/routes/api.php/tasks/comments?task_id=${task_id}`;
+
+            commentsList.innerHTML = "Loading comments...";
+
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "user_id": currentUser.user_id,
+                        "role_id": currentUser.role_id
+                    }
+                });
+
+                const data = await response.json();
+                console.log("Comments response:", data);
+
+                if (!response.ok || data.status !== "success") {
+                    commentsList.innerHTML = data.message || "Unable to load comments.";
+                    return;
+                }
+
+                const comments = Array.isArray(data.comments) ? data.comments : [];
+
+                if (comments.length === 0) {
+                    commentsList.innerHTML = "No comments yet";
+                    return;
+                }
+
+                const user = JSON.parse(localStorage.getItem("user"));
+                console.log("Current user for comment ownership:", user);
+
+                commentsList.innerHTML = comments.map(c => `
+                    <div>
+                        <b>${c.name}</b>: <span id="text-${c.comment_id}">${c.content}</span>
+                        ${c.user_id == user.user_id ? `
+                            <button onclick="editComment(${c.comment_id})">Edit</button>
+                            <button onclick="deleteComment(${c.comment_id})">Delete</button>
+                        ` : ""}
+                    </div>
+                `).join("");
+            } catch (error) {
+                console.error(error);
+                commentsList.innerHTML = "Unable to connect to the server.";
+            }
+        }
+
+        async function addComment() {
+            const commentInput = document.getElementById("commentInput");
+            const content = commentInput.value.trim();
+
+            console.log("Add comment clicked:", {
+                task_id: currentTaskId,
+                content: content
+            });
+
+            if (!currentTaskId || !content) {
+                return;
+            }
+
+            try {
+                const response = await fetch("/TMS/nysc-task-management-system/backend/routes/api.php/tasks/comments", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "user_id": currentUser.user_id,
+                        "role_id": currentUser.role_id
+                    },
+                    body: JSON.stringify({
+                        task_id: currentTaskId,
+                        content: content
+                    })
+                });
+
+                const data = await response.json();
+                console.log("Add comment response:", data);
+
+                if (!response.ok || data.status !== "success") {
+                    return;
+                }
+
+                commentInput.value = "";
+                await loadComments(currentTaskId);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        window.editComment = async function(comment_id) {
+            const user = JSON.parse(localStorage.getItem("user"));
+
+            const newContent = prompt("Edit comment:");
+            if (!newContent) return;
+
+            const response = await fetch("/TMS/nysc-task-management-system/backend/routes/api.php/tasks/comments", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "user_id": user.user_id,
+                    "role_id": user.role_id
+                },
+                body: JSON.stringify({
+                    comment_id: comment_id,
+                    content: newContent
+                })
+            });
+
+            const data = await response.json();
+            console.log(data);
+
+            loadComments(currentTaskId);
+        };
+
+        window.deleteComment = async function(comment_id) {
+            const user = JSON.parse(localStorage.getItem("user"));
+
+            if (!confirm("Delete this comment?")) return;
+
+            const response = await fetch("/TMS/nysc-task-management-system/backend/routes/api.php/tasks/comments", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "user_id": user.user_id,
+                    "role_id": user.role_id
+                },
+                body: JSON.stringify({
+                    comment_id: comment_id
+                })
+            });
+
+            const data = await response.json();
+            console.log(data);
+
+            loadComments(currentTaskId);
+        };
+    </script>
+</body>
+</html>
