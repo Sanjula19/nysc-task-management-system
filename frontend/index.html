@@ -3,84 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <title>NYSC Task Portal — Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="frontend/assets/css/style.css">
 </head>
 <body class="login-page">
-    <div class="login-card">
-        <h1>Welcome Back</h1>
-        <p>Please enter your login details</p>
 
-        <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" placeholder="Enter your email" />
+    <!-- Background -->
+    <div class="bg-pattern"></div>
+    <div class="bg-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Success overlay -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-icon"><i class="fas fa-check"></i></div>
+        <h3>Access Granted</h3>
+        <p id="successMsg">Welcome back, loading your dashboard…</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-wrapper">
+
+        <!-- Left decorative panel -->
+        <div class="panel-left">
+            <div class="brand-mark">
+                <div class="brand-icon"><i class="fas fa-shield-halved"></i></div>
+                <div class="brand-text">
+                    <h1>NYSC TMS</h1>
+                    <p>Task Management System</p>
+                </div>
+            </div>
+
+            <div class="panel-hero">
+                <p class="eyebrow">Federal Republic of Nigeria</p>
+                <h2>Serve with<br>Purpose.</h2>
+                <p>The official task management portal for NYSC management and corps members administration.</p>
+
+                <div class="stat-pills">
+                    <div class="stat-pill">
+                        <div class="dot"></div>
+                        <span>System Online</span>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="dot" style="background:#a5d6a7; animation-delay:0.5s;"></div>
+                        <span>Secure Access</span>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="dot" style="background:#ffe082; animation-delay:1s;"></div>
+                        <span>2026 Batch</span>
+                    </div>
+                </div>
+            </div>
+
+            <p class="panel-footer">© 2026 NYSC Federal Secretariat — All rights reserved</p>
         </div>
 
-        <div class="field">
-            <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Enter your password" />
-        </div>
+        <!-- Right form panel -->
+        <div class="panel-right">
+            <div class="form-heading">
+                <h3>Sign In</h3>
+                <p>Enter your credentials to access the portal.</p>
+            </div>
 
-        <button id="loginBtn" type="button">Login</button>
-        <div class="message" id="message"></div>
+            <div class="field">
+                <label for="email">Email Address</label>
+                <div class="input-wrap">
+                    <input type="email" id="email" placeholder="you@nysc.gov" autocomplete="username" oninput="clearError()">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="error-msg" id="emailError">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span id="emailErrorText">Please enter a valid email.</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="password">Password</label>
+                <div class="input-wrap">
+                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" oninput="clearError()" onkeydown="if(event.key==='Enter') handleLogin()">
+                    <i class="fas fa-lock"></i>
+                    <button class="toggle-pw" type="button" onclick="togglePassword()" tabindex="-1" title="Toggle password">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+                <div class="error-msg" id="passError">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span id="passErrorText">Invalid credentials. Please try again.</span>
+                </div>
+            </div>
+
+            <div class="message" id="message"></div>
+
+            <button class="btn-login" id="loginBtn" onclick="handleLogin()">
+                <span class="btn-text"><i class="fas fa-arrow-right-to-bracket"></i> Login to Portal</span>
+                <div class="spinner"></div>
+            </button>
+        </div>
     </div>
 
     <script>
+        // Redirect if already logged in
         const existingUser = localStorage.getItem("user");
-
         if (existingUser) {
-            // prevent going back to login page
             window.location.replace("dashboard.html");
         }
 
-        const emailInput = document.getElementById("email");
-        const passwordInput = document.getElementById("password");
-        const loginBtn = document.getElementById("loginBtn");
-        const message = document.getElementById("message");
         const loginApiUrl = "../backend/routes/api.php/login";
 
-        loginBtn.addEventListener("click", async function (event) {
-            event.preventDefault();
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon  = document.getElementById('eyeIcon');
+            const show  = input.type === 'password';
+            input.type  = show ? 'text' : 'password';
+            icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+        }
 
-            const email = emailInput.value.trim();
-            const password = passwordInput.value.trim();
+        function clearError() {
+            document.getElementById('emailError').classList.remove('visible');
+            document.getElementById('passError').classList.remove('visible');
+            document.getElementById('message').textContent = '';
+        }
 
-            if (!email || !password) {
-                message.textContent = "Please enter both email and password.";
+        async function handleLogin() {
+            const email    = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const btn      = document.getElementById('loginBtn');
+            const message  = document.getElementById('message');
+
+            // Basic validation
+            if (!email) {
+                document.getElementById('emailErrorText').innerText = 'Email address is required.';
+                document.getElementById('emailError').classList.add('visible');
+                return;
+            }
+            if (!password) {
+                document.getElementById('passErrorText').innerText = 'Password is required.';
+                document.getElementById('passError').classList.add('visible');
                 return;
             }
 
-            message.textContent = "Logging in...";
+            // Show loading spinner
+            btn.classList.add('loading');
+            message.textContent = '';
 
             try {
                 const response = await fetch(loginApiUrl, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
                 });
 
                 const data = await response.json();
                 const user = data.user || null;
 
+                btn.classList.remove('loading');
+
                 if (!response.ok || data.status !== "success" || !user) {
-                    message.textContent = data.message || "Login failed.";
+                    document.getElementById('passErrorText').innerText = data.message || "Invalid credentials. Please try again.";
+                    document.getElementById('passError').classList.add('visible');
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
                     return;
                 }
 
+                // Save user and show success overlay
                 localStorage.setItem("user", JSON.stringify(user));
+                document.getElementById('successMsg').innerText = `Welcome back, ${user.name || user.email}. Loading dashboard…`;
+                document.getElementById('successOverlay').classList.add('show');
 
-                message.textContent = data.message || "Login successful.";
-                window.location.href = "dashboard.html";
+                setTimeout(() => {
+                    window.location.href = "dashboard.html";
+                }, 1800);
+
             } catch (error) {
                 console.error(error);
+                btn.classList.remove('loading');
                 message.textContent = "Unable to connect to the server.";
             }
-        });
+        }
     </script>
+
 </body>
 </html>
