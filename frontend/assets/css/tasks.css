@@ -1,0 +1,51 @@
+/* SEARCH BAR */
+.task-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.task-controls input {
+    width: 60%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    outline: none;
+}
+
+.task-controls select {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+/* TABLE */
+.table-section {
+    background: white;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+/* STATUS COLORS */
+.status {
+    font-weight: bold;
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.progress {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+.completed {
+    background: #dcfce7;
+    color: #16a34a;
+}

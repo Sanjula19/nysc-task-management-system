@@ -122,3 +122,63 @@ function register(): void
         ]);
     }
 }
+
+function updateProfile(): void
+{
+    try {
+        $pdo = getPDO();
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        $userId = $_SERVER['HTTP_USER_ID'] ?? null;
+        $name = trim($data['name'] ?? '');
+        $password = $data['password'] ?? '';
+
+        if (!$userId) {
+            throw new Exception("Unauthorized");
+        }
+
+        if ($name === '') {
+            throw new Exception("Name required");
+        }
+
+        // If password provided → hash it
+        if ($password !== '') {
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+            $stmt = $pdo->prepare("
+                UPDATE users 
+                SET name = :name, password = :password 
+                WHERE user_id = :id
+            ");
+
+            $stmt->execute([
+                'name' => $name,
+                'password' => $hashed,
+                'id' => $userId
+            ]);
+        } else {
+            $stmt = $pdo->prepare("
+                UPDATE users 
+                SET name = :name 
+                WHERE user_id = :id
+            ");
+
+            $stmt->execute([
+                'name' => $name,
+                'id' => $userId
+            ]);
+        }
+
+        echo json_encode([
+            "status" => "success",
+            "message" => "Profile updated"
+        ]);
+
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode([
+            "status" => "error",
+            "message" => $e->getMessage()
+        ]);
+    }
+}

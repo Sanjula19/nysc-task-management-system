@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Profile</title>
+
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/profile.css">
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <h2 class="logo">NYSC TMS</h2>
+
+        <ul class="menu">
+            <li onclick="goDashboard()">Dashboard</li>
+            <li onclick="goTasks()">All Tasks</li>
+            <li onclick="goCreate()">Create Task</li>
+            <li class="active">Official Profile</li>
+        </ul>
+
+        <div class="user">
+            <p id="userName"></p>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <div class="topbar">
+            <h1>PROFILE</h1>
+        </div>
+
+        <!-- HEADER CARD -->
+        <div class="profile-header">
+            <div class="avatar">
+                <span id="avatarLetter">U</span>
+            </div>
+
+            <h2 id="name">User Name</h2>
+            <p id="role">Official Role</p>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="profile-grid">
+
+            <!-- LEFT FORM -->
+            <div class="profile-form">
+
+                <h3>User Profile Form</h3>
+
+                <div class="form-grid">
+                    <div>
+                        <label>Official Name</label>
+                        <input type="text" id="editName">
+                    </div>
+
+                    <div>
+                        <label>District Office</label>
+                        <input type="text" id="district">
+                    </div>
+
+                    <div>
+                        <label>Email (immutable)</label>
+                        <input type="text" id="email" disabled>
+                    </div>
+
+                    <div>
+                        <label>Position Level</label>
+                        <input type="text" id="roleText" disabled>
+                    </div>
+                </div>
+
+                <button class="update-btn" onclick="updateProfile()">
+                    Update Profile Data
+                </button>
+
+            </div>
+
+            <!-- RIGHT CARD -->
+            <div class="profile-id">
+
+                <div class="id-box">
+                    <p>EMPLOYEE UID</p>
+                    <h2 id="userId">#000000</h2>
+                    <small>System Role Authenticated</small>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/profile.js"></script>
+
+</body>
+</html>

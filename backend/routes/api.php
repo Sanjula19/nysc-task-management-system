@@ -193,3 +193,15 @@ echo json_encode([
     'method' => $method,
     'endpoint' => $endpoint,
 ]);
+
+if ($method === 'PUT' && $endpoint === '/profile/update') {
+    $user = checkAuth();
+
+    if ($user === null) {
+        exit;
+    }
+
+    require_once __DIR__ . '/../controllers/AuthController.php';
+    updateProfile();
+    exit;
+}

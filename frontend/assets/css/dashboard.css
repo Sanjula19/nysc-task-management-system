@@ -1,0 +1,263 @@
+/* RESET */
+body {
+    margin: 0;
+    font-family: "Inter", sans-serif;
+    background: #f5f7fb;
+}
+
+/* LAYOUT */
+.layout {
+    display: flex;
+}
+
+
+/* SIDEBAR FIX */
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e6b2c, #174d20);
+    color: white;
+    padding: 25px 20px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+/* MENU takes space */
+.menu {
+    list-style: none;
+    padding: 0;
+    flex: 1;   /* 🔥 pushes user section down */
+}
+
+/* USER SECTION FIX */
+.user {
+    margin-top: auto;  /* 🔥 sticks to bottom */
+}
+
+.user p {
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.user button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.user button:hover {
+    transform: translateY(-2px);
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 30px;
+}
+
+/* MENU STYLE IMPROVE */
+.menu li {
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.25s;
+    font-weight: 500;
+}
+
+.menu li:hover {
+    background: rgba(255,255,255,0.12);
+}
+
+.menu .active {
+    background: rgba(255,255,255,0.2);
+    box-shadow: inset 3px 0 0 #facc15;
+}
+
+
+/* MAIN */
+.main {
+    flex: 1;
+    padding: 30px;
+}
+
+/* TOPBAR */
+.topbar h1 {
+    font-size: 26px;
+    margin-bottom: 20px;
+}
+
+/* STATS */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.card {
+    background: white;
+    padding: 22px;
+    border-radius: 16px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.06);
+    transition: 0.25s;
+}
+
+.card:hover {
+    transform: translateY(-5px) scale(1.01);
+}
+
+/* COLOR BORDERS */
+.card.blue { border-bottom: 4px solid #3b82f6; }
+.card.yellow { border-bottom: 4px solid #f59e0b; }
+.card.purple { border-bottom: 4px solid #8b5cf6; }
+.card.green { border-bottom: 4px solid #22c55e; }
+
+/* TABLE SECTION */
+.table-section {
+    margin-top: 30px;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.05);
+}
+
+
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.table-header h3 {
+    margin: 0;
+}
+
+.table-header span {
+    color: #3b82f6;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* TABLE */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    font-size: 13px;
+    color: #777;
+    padding-bottom: 10px;
+}
+
+td {
+    padding: 14px 0;
+    border-top: 1px solid #eee;
+    font-size: 14px;
+}
+
+/* ROW HOVER */
+tr {
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+tr:hover {
+    background: #f9fafc;
+}
+
+/* STATUS STYLE */
+td:nth-child(2) {
+    font-weight: 600;
+    color: #f59e0b;
+}
+
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 25px;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+}
+
+.right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.top-right {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    color: #555;
+}
+
+.card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.icon.blue { background: #dbeafe; }
+.icon.yellow { background: #fef3c7; }
+.icon.purple { background: #ede9fe; }
+.icon.green { background: #dcfce7; }
+
+
+.widget {
+    background: white;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+.widget button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #16a34a;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.widget button:hover {
+    background: #15803d;
+}
+
+td:nth-child(2) {
+    font-weight: bold;
+    color: #f59e0b;
+}

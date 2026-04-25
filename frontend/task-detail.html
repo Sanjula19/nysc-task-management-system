@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Details</title>
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/task-detail.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>Task Details</h1>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section class="task-summary">
+            <div class="summary-card">
+                <h2 id="taskTitle">Title</h2>
+                <p id="taskDescription" class="task-description">Description</p>
+                <div class="task-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Status</span>
+                        <span id="taskStatus" class="meta-value">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Priority</span>
+                        <span id="taskPriority" class="meta-value">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Deadline</span>
+                        <span id="taskDeadline" class="meta-value">-</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="comments-section">
+            <div class="section-header">
+                <h3>Comments</h3>
+            </div>
+            <ul id="commentsList" class="comments-list">
+                <!-- Comments will be rendered here -->
+            </ul>
+        </section>
+
+        <section class="comment-form-section">
+            <label class="comment-label" for="commentInput">Add Comment</label>
+            <textarea id="commentInput" class="comment-input" rows="4" placeholder="Write your comment..."></textarea>
+            <button id="addCommentBtn" class="primary-btn" type="button">Add Comment</button>
+        </section>
+    </main>
+
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/task-detail.js"></script>
+</body>
+</html>

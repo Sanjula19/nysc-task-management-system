@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Task Directory</title>
+
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/tasks.css">
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR (same as dashboard) -->
+    <aside class="sidebar">
+        <h2 class="logo">NYSC TMS</h2>
+
+        <ul class="menu">
+            <li onclick="goDashboard()">Dashboard</li>
+            <li class="active">All Tasks</li>
+            <li onclick="goCreate()">Create Task</li>
+            <li onclick="goProfile()">Profile</li>
+        </ul>
+
+        <div class="user">
+            <p id="userName"></p>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <div class="topbar">
+            <h1>Task Directory</h1>
+            <div class="top-right">🔔 24 April 2026</div>
+        </div>
+
+        <!-- SEARCH + FILTER -->
+        <div class="task-controls">
+
+            <input type="text" id="search" placeholder="Search task name or assignee...">
+
+            <select id="statusFilter">
+                <option value="ALL">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+            </select>
+
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-section">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Assigned To</th>
+                        <th>Priority</th>
+                        <th>Deadline</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="taskBody"></tbody>
+            </table>
+        </div>
+
+    </main>
+
+</div>
+
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/tasks.js"></script>
+
+</body>
+</html>

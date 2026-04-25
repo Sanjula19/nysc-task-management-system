@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Create Task</title>
+
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/create-task.css">
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <h2 class="logo">NYSC TMS</h2>
+
+        <ul class="menu">
+            <li onclick="goDashboard()">Dashboard</li>
+            <li onclick="goTasks()">All Tasks</li>
+            <li class="active">Create Task</li>
+            <li onclick="goProfile()">Profile</li>
+        </ul>
+
+        <div class="user">
+            <p id="userName"></p>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <div class="topbar">
+            <h1>Create New Assignment</h1>
+            <div class="top-right">🔔 24 April 2026</div>
+        </div>
+
+        <div class="form-card">
+
+            <h2>Assign New Mission</h2>
+
+            <form id="taskForm">
+
+                <label>Task Title</label>
+                <input type="text" id="title" required>
+
+                <label>Description</label>
+                <textarea id="description" rows="4"></textarea>
+
+                <div class="row">
+                    <div>
+                        <label>Priority</label>
+                        <select id="priority">
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM" selected>Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Deadline</label>
+                        <input type="date" id="deadline">
+                    </div>
+                </div>
+
+                <label>Assign Assistant Director(s)</label>
+                <div id="usersList" class="users"></div>
+
+                <div class="actions">
+                    <button type="button" class="cancel" onclick="goTasks()">Cancel</button>
+                    <button type="submit" class="submit">Create and Assign</button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/create-task.js"></script>
+
+</body>
+</html>
