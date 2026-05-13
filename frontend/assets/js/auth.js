@@ -91,6 +91,8 @@ function normalizeUser(user) {
         email: String(source.email ?? "").trim(),
         role_id: roleId,
         role_name: String(source.role_name ?? source.selected_role_name ?? source.active_role_name ?? roleMeta.title ?? "").trim(),
+        district: String(source.district ?? "").trim(),
+        profile_photo: String(source.profile_photo ?? source.profilePhoto ?? "").trim(),
     };
 }
 
@@ -286,6 +288,18 @@ function redirectIfLoggedIn() {
 }
 
 function logout() {
+    try {
+        fetch(`${AUTH_API_BASE}/logout`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            keepalive: true
+        });
+    } catch (error) {
+        console.warn("Logout request failed:", error);
+    }
+
     clearAuthState();
     window.location.href = "./login.html";
 }
@@ -349,7 +363,10 @@ async function submitOfficialLogin(event) {
             return;
         }
 
-        const user = normalizeUser(data.user);
+        const user = normalizeUser({
+            ...(data.user || {}),
+            ...(data.profile || {})
+        });
         const roles = normalizeRoles(data.roles || []);
 
         if (roles.length === 0) {

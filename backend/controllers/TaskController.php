@@ -7,9 +7,108 @@ require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 
 function getTaskJsonInput(): array
 {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $rawInput = file_get_contents('php://input');
+    $data = json_decode($rawInput, true);
 
     return is_array($data) ? $data : [];
+}
+
+function buildTaskCollectionSql(bool $assignedOnly, bool $filterById = false): array
+{
+    $sql = '
+        SELECT
+            t.task_id,
+            t.title,
+            t.description,
+            t.priority,
+            t.deadline,
+            t.status,
+            t.created_at,
+            t.created_by,
+            creator.name AS created_by_name,
+            COALESCE(GROUP_CONCAT(DISTINCT assignee.name ORDER BY assignee.name SEPARATOR ", "), "") AS assigned_to,
+            COALESCE(GROUP_CONCAT(DISTINCT assignee.user_id ORDER BY assignee.user_id SEPARATOR ","), "") AS assigned_user_ids
+        FROM tasks t
+        INNER JOIN users creator ON creator.user_id = t.created_by
+        LEFT JOIN task_assignments task_map ON task_map.task_id = t.task_id
+        LEFT JOIN users assignee ON assignee.user_id = task_map.user_id
+        WHERE 1 = 1
+    ';
+
+    $params = [];
+
+    if ($filterById) {
+        $sql .= ' AND t.task_id = :task_id';
+    }
+
+    if ($assignedOnly) {
+        $sql .= '
+            AND EXISTS (
+                SELECT 1
+                FROM task_assignments assigned_filter
+                WHERE assigned_filter.task_id = t.task_id
+                  AND assigned_filter.user_id = :user_id
+            )
+        ';
+    }
+
+    $sql .= '
+        GROUP BY
+            t.task_id,
+            t.title,
+            t.description,
+            t.priority,
+            t.deadline,
+            t.status,
+            t.created_at,
+            t.created_by,
+            creator.name
+        ORDER BY t.created_at DESC
+    ';
+
+    return [
+        'sql' => $sql,
+        'params' => $params,
+    ];
+}
+
+function executeTaskCollection(PDO $pdo, array $user, ?int $taskId = null): array
+{
+    $assignedOnly = ((int) $user['role_id']) === 4;
+    $query = buildTaskCollectionSql($assignedOnly, $taskId !== null);
+    $sql = $query['sql'];
+    $params = $query['params'];
+
+    if ($taskId !== null) {
+        $params['task_id'] = $taskId;
+    }
+
+    if ($assignedOnly) {
+        $params['user_id'] = (int) $user['user_id'];
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function formatTaskRows(array $rows): array
+{
+    return array_map(static function (array $row): array {
+        $assignedUsers = trim((string) ($row['assigned_to'] ?? ''));
+        $assignedUserIds = trim((string) ($row['assigned_user_ids'] ?? ''));
+
+        $row['assigned_to'] = $assignedUsers;
+        $row['assigned_users'] = $assignedUsers === ''
+            ? []
+            : array_values(array_filter(array_map('trim', explode(',', $assignedUsers))));
+        $row['assigned_user_ids'] = $assignedUserIds === ''
+            ? []
+            : array_values(array_filter(array_map('intval', explode(',', $assignedUserIds))));
+
+        return $row;
+    }, $rows);
 }
 
 function createTask(): void
@@ -26,10 +125,9 @@ function createTask(): void
 
         $title = trim($data['title'] ?? '');
         $description = trim($data['description'] ?? '');
-        $priority = trim($data['priority'] ?? '');
+        $priority = strtoupper(trim($data['priority'] ?? ''));
         $deadline = trim($data['deadline'] ?? '');
         $status = 'PENDING';
-        $createdAt = date('Y-m-d H:i:s');
         $createdBy = (int) $user['user_id'];
 
         if ($title === '' || $description === '' || $priority === '' || $deadline === '') {
@@ -41,9 +139,31 @@ function createTask(): void
             return;
         }
 
+        $allowedPriorities = ['LOW', 'MEDIUM', 'HIGH'];
+
+        if (!in_array($priority, $allowedPriorities, true)) {
+            http_response_code(400);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Invalid priority value.',
+            ]);
+            return;
+        }
+
+        $deadlineDate = DateTime::createFromFormat('Y-m-d', $deadline);
+
+        if (!$deadlineDate || $deadlineDate->format('Y-m-d') !== $deadline) {
+            http_response_code(400);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Invalid deadline value.',
+            ]);
+            return;
+        }
+
         $stmt = $pdo->prepare(
             'INSERT INTO tasks (title, description, priority, deadline, status, created_at, created_by)
-             VALUES (:title, :description, :priority, :deadline, :status, :created_at, :created_by)'
+             VALUES (:title, :description, :priority, :deadline, :status, NOW(), :created_by)'
         );
 
         $stmt->execute([
@@ -52,7 +172,6 @@ function createTask(): void
             'priority' => $priority,
             'deadline' => $deadline,
             'status' => $status,
-            'created_at' => $createdAt,
             'created_by' => $createdBy,
         ]);
 
@@ -72,95 +191,75 @@ function createTask(): void
 
 function getTasks(): void
 {
-    try {
-        $pdo = getPDO();
-
-        $stmt = $pdo->prepare(
-            'SELECT task_id, title, description, status, priority, deadline, created_at
-             FROM tasks
-             ORDER BY created_at DESC'
-        );
-        $stmt->execute();
-
-        echo json_encode([
-            'status' => 'success',
-            'tasks' => $stmt->fetchAll(),
-        ]);
-    } catch (Throwable $e) {
-        http_response_code(500);
-        echo json_encode([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-        ]);
-    }
+    getAllTasks();
 }
 
 function updateTaskStatus(): void
 {
-    $user = checkAuth();
+    $user = checkRole([4]);
 
-    if (!$user) {
-        return;
-    }
-
-    $roleId = (int) $user['role_id'];
-    $userId = (int) $user['user_id'];
-
-    $input = json_decode(file_get_contents('php://input'), true);
-
-    $taskId = $input['task_id'] ?? null;
-    $status = $input['status'] ?? null;
-
-    if (!$taskId || !$status) {
-        http_response_code(400);
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Missing task_id or status',
-        ]);
-        return;
-    }
-
-    $allowedStatuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED'];
-
-    if (!in_array($status, $allowedStatuses, true)) {
-        http_response_code(400);
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Invalid status',
-        ]);
+    if ($user === null) {
         return;
     }
 
     try {
         $pdo = getPDO();
+        $input = getTaskJsonInput();
 
-        if ($roleId === 4) {
-            $assignmentCheck = $pdo->prepare(
-                'SELECT task_id FROM task_assignments WHERE task_id = :task_id AND user_id = :user_id'
-            );
-            $assignmentCheck->execute([
-                'task_id' => $taskId,
-                'user_id' => $userId,
+        $taskId = (int) ($input['task_id'] ?? 0);
+        $status = strtoupper(trim($input['status'] ?? ''));
+
+        if ($taskId <= 0 || $status === '') {
+            http_response_code(400);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Missing task_id or status.',
             ]);
-
-            if (!$assignmentCheck->fetch()) {
-                http_response_code(403);
-                echo json_encode([
-                    'status' => 'error',
-                    'message' => 'Forbidden',
-                ]);
-                return;
-            }
+            return;
         }
 
-        $check = $pdo->prepare('SELECT task_id FROM tasks WHERE task_id = ?');
-        $check->execute([$taskId]);
+        $allowedStatuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED'];
 
-        if (!$check->fetch()) {
+        if (!in_array($status, $allowedStatuses, true)) {
+            http_response_code(400);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Invalid status.',
+            ]);
+            return;
+        }
+
+        $assignmentCheck = $pdo->prepare(
+            'SELECT task_id
+             FROM task_assignments
+             WHERE task_id = :task_id
+               AND user_id = :user_id
+             LIMIT 1'
+        );
+        $assignmentCheck->execute([
+            'task_id' => $taskId,
+            'user_id' => (int) $user['user_id'],
+        ]);
+
+        if (!$assignmentCheck->fetch(PDO::FETCH_ASSOC)) {
+            http_response_code(403);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Forbidden',
+            ]);
+            return;
+        }
+
+        $check = $pdo->prepare('SELECT task_id FROM tasks WHERE task_id = :task_id LIMIT 1');
+        $check->execute([
+            'task_id' => $taskId,
+        ]);
+
+        if (!$check->fetch(PDO::FETCH_ASSOC)) {
             http_response_code(404);
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Task not found',
+                'message' => 'Task not found.',
             ]);
             return;
         }
@@ -178,7 +277,7 @@ function updateTaskStatus(): void
 
         echo json_encode([
             'status' => 'success',
-            'message' => 'Task status updated',
+            'message' => 'Task status updated.',
         ]);
     } catch (Throwable $e) {
         http_response_code(500);
@@ -194,13 +293,11 @@ function deleteTask(): void
     try {
         $user = checkAuth();
 
-        if (!$user) {
+        if ($user === null) {
             return;
         }
 
-        $roleId = (int) $user['role_id'];
-
-        if (!in_array($roleId, [1, 2], true)) {
+        if (!in_array((int) $user['role_id'], [1, 2], true)) {
             http_response_code(403);
             echo json_encode([
                 'status' => 'error',
@@ -211,10 +308,9 @@ function deleteTask(): void
 
         $pdo = getPDO();
         $data = getTaskJsonInput();
+        $taskId = (int) ($data['task_id'] ?? 0);
 
-        $taskId = $data['task_id'] ?? null;
-
-        if ($taskId === null || $taskId === '') {
+        if ($taskId <= 0) {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
@@ -223,13 +319,9 @@ function deleteTask(): void
             return;
         }
 
-        $stmt = $pdo->prepare(
-            'DELETE FROM tasks
-             WHERE task_id = :task_id'
-        );
-
+        $stmt = $pdo->prepare('DELETE FROM tasks WHERE task_id = :task_id');
         $stmt->execute([
-            'task_id' => (int) $taskId,
+            'task_id' => $taskId,
         ]);
 
         if ($stmt->rowCount() === 0) {
@@ -256,31 +348,20 @@ function deleteTask(): void
 
 function assignTask(): void
 {
+    $user = checkRole([1]);
+
+    if ($user === null) {
+        return;
+    }
+
     try {
-        $user = checkAuth();
-
-        if (!$user) {
-            return;
-        }
-
-        $roleId = (int) $user['role_id'];
-
-        if (!in_array($roleId, [1, 2], true)) {
-            http_response_code(403);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Forbidden',
-            ]);
-            return;
-        }
-
         $pdo = getPDO();
         $data = getTaskJsonInput();
 
-        $taskId = $data['task_id'] ?? null;
-        $userIds = $data['user_ids'] ?? null;
+        $taskId = (int) ($data['task_id'] ?? 0);
+        $userIds = $data['user_ids'] ?? [];
 
-        if ($taskId === null || $taskId === '' || !is_array($userIds) || empty($userIds)) {
+        if ($taskId <= 0 || !is_array($userIds) || empty($userIds)) {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
@@ -289,17 +370,30 @@ function assignTask(): void
             return;
         }
 
-        $taskId = (int) $taskId;
         $userIds = array_values(array_unique(array_map('intval', $userIds)));
-        $userIds = array_values(array_filter($userIds, function ($userId) {
+        $userIds = array_values(array_filter($userIds, static function (int $userId): bool {
             return $userId > 0;
         }));
 
-        if ($taskId <= 0 || empty($userIds)) {
+        if (empty($userIds)) {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Invalid task ID or user_ids.',
+                'message' => 'Task ID and user_ids are required.',
+            ]);
+            return;
+        }
+
+        $taskExists = $pdo->prepare('SELECT task_id FROM tasks WHERE task_id = :task_id LIMIT 1');
+        $taskExists->execute([
+            'task_id' => $taskId,
+        ]);
+
+        if (!$taskExists->fetch(PDO::FETCH_ASSOC)) {
+            http_response_code(404);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Task not found.',
             ]);
             return;
         }
@@ -310,7 +404,7 @@ function assignTask(): void
              FROM users u
              INNER JOIN user_roles ur ON ur.user_id = u.user_id
              WHERE ur.role_id = 4
-             AND u.user_id IN ({$placeholders})"
+               AND u.user_id IN ({$placeholders})"
         );
         $userCheckStmt->execute($userIds);
 
@@ -329,39 +423,31 @@ function assignTask(): void
             return;
         }
 
-        $existingAssignmentStmt = $pdo->prepare(
-            "SELECT user_id
-             FROM task_assignments
-             WHERE task_id = ?
-             AND user_id IN ({$placeholders})"
+        $pdo->beginTransaction();
+
+        $deleteAssignments = $pdo->prepare('DELETE FROM task_assignments WHERE task_id = :task_id');
+        $deleteAssignments->execute([
+            'task_id' => $taskId,
+        ]);
+
+        $insertStmt = $pdo->prepare(
+            'INSERT INTO task_assignments (task_id, user_id, assigned_at)
+             VALUES (:task_id, :user_id, NOW())'
         );
-        $existingAssignmentStmt->execute(array_merge([$taskId], $userIds));
 
-        $existingUserIds = array_map('intval', $existingAssignmentStmt->fetchAll(PDO::FETCH_COLUMN));
-        $newUserIds = array_values(array_diff($userIds, $existingUserIds));
-
-        if (!empty($newUserIds)) {
-            $pdo->beginTransaction();
-
-            $insertStmt = $pdo->prepare(
-                'INSERT INTO task_assignments (task_id, user_id)
-                 VALUES (:task_id, :user_id)'
-            );
-
-            foreach ($newUserIds as $userId) {
-                $insertStmt->execute([
-                    'task_id' => $taskId,
-                    'user_id' => $userId,
-                ]);
-            }
-
-            $pdo->commit();
+        foreach ($userIds as $userId) {
+            $insertStmt->execute([
+                'task_id' => $taskId,
+                'user_id' => $userId,
+            ]);
         }
+
+        $pdo->commit();
 
         echo json_encode([
             'status' => 'success',
             'message' => 'Task assigned successfully.',
-            'assigned_count' => count($newUserIds),
+            'assigned_count' => count($userIds),
         ]);
     } catch (Throwable $e) {
         if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
@@ -380,9 +466,9 @@ function getAssignedUsers(): void
 {
     try {
         $pdo = getPDO();
-        $taskId = $_GET['task_id'] ?? null;
+        $taskId = (int) ($_GET['task_id'] ?? 0);
 
-        if ($taskId === null || $taskId === '') {
+        if ($taskId <= 0) {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
@@ -392,19 +478,31 @@ function getAssignedUsers(): void
         }
 
         $stmt = $pdo->prepare(
-            'SELECT u.user_id, u.name, u.email
+            'SELECT
+                u.user_id,
+                u.name,
+                u.email,
+                COALESCE(up.district, "") AS district,
+                up.profile_photo,
+                r.role_id,
+                r.role_name
              FROM task_assignments ta
              INNER JOIN users u ON ta.user_id = u.user_id
-             WHERE ta.task_id = :task_id'
+             INNER JOIN user_roles ur ON ur.user_id = u.user_id
+             INNER JOIN roles r ON r.role_id = ur.role_id
+             LEFT JOIN user_profiles up ON up.user_id = u.user_id
+             WHERE ta.task_id = :task_id
+               AND ur.role_id = 4
+             ORDER BY u.name ASC'
         );
 
         $stmt->execute([
-            'task_id' => (int) $taskId,
+            'task_id' => $taskId,
         ]);
 
         echo json_encode([
             'status' => 'success',
-            'users' => $stmt->fetchAll(),
+            'users' => $stmt->fetchAll(PDO::FETCH_ASSOC),
         ]);
     } catch (Throwable $e) {
         http_response_code(500);
@@ -418,13 +516,19 @@ function getAssignedUsers(): void
 function removeAssignment(): void
 {
     try {
+        $user = checkRole([1]);
+
+        if ($user === null) {
+            return;
+        }
+
         $pdo = getPDO();
         $data = getTaskJsonInput();
 
-        $taskId = $data['task_id'] ?? null;
-        $userId = $data['user_id'] ?? null;
+        $taskId = (int) ($data['task_id'] ?? 0);
+        $userId = (int) ($data['user_id'] ?? 0);
 
-        if ($taskId === null || $taskId === '' || $userId === null || $userId === '') {
+        if ($taskId <= 0 || $userId <= 0) {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
@@ -436,17 +540,17 @@ function removeAssignment(): void
         $stmt = $pdo->prepare(
             'DELETE FROM task_assignments
              WHERE task_id = :task_id
-             AND user_id = :user_id'
+               AND user_id = :user_id'
         );
 
         $stmt->execute([
-            'task_id' => (int) $taskId,
-            'user_id' => (int) $userId,
+            'task_id' => $taskId,
+            'user_id' => $userId,
         ]);
 
         echo json_encode([
             'status' => 'success',
-            'message' => 'Assignment removed',
+            'message' => 'Assignment removed.',
         ]);
     } catch (Throwable $e) {
         http_response_code(500);
@@ -467,23 +571,11 @@ function getMyTasks(): void
         }
 
         $pdo = getPDO();
-        $userId = (int) $user['user_id'];
-
-        $stmt = $pdo->prepare(
-            'SELECT t.task_id, t.title, t.description, t.status, t.priority, t.deadline
-             FROM tasks t
-             INNER JOIN task_assignments ta ON t.task_id = ta.task_id
-             WHERE ta.user_id = :user_id
-             ORDER BY t.created_at DESC'
-        );
-
-        $stmt->execute([
-            'user_id' => $userId,
-        ]);
+        $rows = executeTaskCollection($pdo, $user);
 
         echo json_encode([
             'status' => 'success',
-            'tasks' => $stmt->fetchAll(),
+            'tasks' => formatTaskRows($rows),
         ]);
     } catch (Throwable $e) {
         http_response_code(500);
@@ -503,10 +595,7 @@ function getAllTasks(): void
             return;
         }
 
-        $roleId = (int) $user['role_id'];
-        $userId = (int) $user['user_id'];
-
-        if (!in_array($roleId, [1, 2, 3, 4], true)) {
+        if (!in_array((int) $user['role_id'], [1, 2, 3, 4], true)) {
             http_response_code(403);
             echo json_encode([
                 'status' => 'error',
@@ -516,64 +605,11 @@ function getAllTasks(): void
         }
 
         $pdo = getPDO();
-
-        if ($roleId === 4) {
-            $stmt = $pdo->prepare(
-                'SELECT
-                    t.task_id,
-                    t.title,
-                    t.description,
-                    t.status,
-                    t.priority,
-                    t.deadline,
-                    u.name AS created_by_name,
-                    GROUP_CONCAT(au.name) AS assigned_users
-                 FROM tasks t
-                 JOIN users u ON t.created_by = u.user_id
-                 JOIN task_assignments ta ON t.task_id = ta.task_id
-                 LEFT JOIN users au ON ta.user_id = au.user_id
-                 WHERE ta.user_id = :user_id
-                 GROUP BY t.task_id
-                 ORDER BY t.created_at DESC'
-            );
-            $stmt->execute([
-                'user_id' => $userId,
-            ]);
-        } else {
-            $stmt = $pdo->prepare(
-                'SELECT
-                    t.task_id,
-                    t.title,
-                    t.description,
-                    t.status,
-                    t.priority,
-                    t.deadline,
-                    u.name AS created_by_name,
-                    GROUP_CONCAT(au.name) AS assigned_users
-                 FROM tasks t
-                 JOIN users u ON t.created_by = u.user_id
-                 LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
-                 LEFT JOIN users au ON ta.user_id = au.user_id
-                 GROUP BY t.task_id
-                 ORDER BY t.created_at DESC'
-            );
-            $stmt->execute();
-        }
-
-        $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $tasks = array_map(function (array $row): array {
-            $assignedUsers = $row['assigned_users'] ?? '';
-
-            $row['assigned_users'] = $assignedUsers === ''
-                ? []
-                : array_values(array_filter(array_map('trim', explode(',', $assignedUsers))));
-
-            return $row;
-        }, $tasks);
+        $rows = executeTaskCollection($pdo, $user);
 
         echo json_encode([
             'status' => 'success',
-            'tasks' => $tasks,
+            'tasks' => formatTaskRows($rows),
         ]);
     } catch (Throwable $e) {
         http_response_code(500);
@@ -593,30 +629,47 @@ function getTaskById($taskId): void
             return;
         }
 
-        $roleId = (int) $user['role_id'];
-        $userId = (int) $user['user_id'];
+        $taskId = (int) $taskId;
 
-        if (!in_array($roleId, [1, 2, 3, 4], true)) {
-            http_response_code(403);
+        if ($taskId <= 0) {
+            http_response_code(400);
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Forbidden',
+                'message' => 'Invalid task ID.',
             ]);
             return;
         }
 
         $pdo = getPDO();
 
-        if ($roleId === 4) {
+        $taskExists = $pdo->prepare('SELECT task_id FROM tasks WHERE task_id = :task_id LIMIT 1');
+        $taskExists->execute([
+            'task_id' => $taskId,
+        ]);
+
+        if (!$taskExists->fetch(PDO::FETCH_ASSOC)) {
+            http_response_code(404);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Task not found.',
+            ]);
+            return;
+        }
+
+        if ((int) $user['role_id'] === 4) {
             $assignmentCheck = $pdo->prepare(
-                'SELECT task_id FROM task_assignments WHERE task_id = :task_id AND user_id = :user_id'
+                'SELECT task_id
+                 FROM task_assignments
+                 WHERE task_id = :task_id
+                   AND user_id = :user_id
+                 LIMIT 1'
             );
             $assignmentCheck->execute([
                 'task_id' => $taskId,
-                'user_id' => $userId,
+                'user_id' => (int) $user['user_id'],
             ]);
 
-            if (!$assignmentCheck->fetch()) {
+            if (!$assignmentCheck->fetch(PDO::FETCH_ASSOC)) {
                 http_response_code(403);
                 echo json_encode([
                     'status' => 'error',
@@ -626,44 +679,23 @@ function getTaskById($taskId): void
             }
         }
 
-        $stmt = $pdo->prepare(
-            'SELECT
-                t.task_id,
-                t.title,
-                t.description,
-                t.status,
-                t.priority,
-                t.deadline,
-                u.name AS created_by_name,
-                GROUP_CONCAT(au.name) AS assigned_users
-             FROM tasks t
-             JOIN users u ON t.created_by = u.user_id
-             LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
-             LEFT JOIN users au ON ta.user_id = au.user_id
-             WHERE t.task_id = :task_id
-             GROUP BY t.task_id
-             LIMIT 1'
-        );
-
-        $stmt->execute(['task_id' => $taskId]);
-        $task = $stmt->fetch(PDO::FETCH_ASSOC);
+        $rows = executeTaskCollection($pdo, $user, $taskId);
+        $task = $rows[0] ?? null;
 
         if (!$task) {
             http_response_code(404);
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Task not found',
+                'message' => 'Task not found.',
             ]);
             return;
         }
 
-        $task['assigned_users'] = $task['assigned_users']
-            ? array_map('trim', explode(',', $task['assigned_users']))
-            : [];
+        $formatted = formatTaskRows([$task]);
 
         echo json_encode([
             'status' => 'success',
-            'task' => $task,
+            'task' => $formatted[0],
         ]);
     } catch (Throwable $e) {
         http_response_code(500);

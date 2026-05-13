@@ -5,32 +5,63 @@ ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
+require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/TaskController.php';
 require_once __DIR__ . '/../controllers/CommentController.php';
 
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$requestPath = parse_url($requestUri, PHP_URL_PATH) ?? '/';
-$basePath = '/TMS/nysc-task-management-system/backend/routes/api.php';
-$endpoint = '/';
+function resolveRoutePath(): string
+{
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+    $requestPath = parse_url($requestUri, PHP_URL_PATH) ?? '/';
+    $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+    $pathInfo = $_SERVER['PATH_INFO'] ?? '';
 
-if (strpos($requestPath, $basePath) === 0) {
-    $endpoint = substr($requestPath, strlen($basePath));
+    if ($pathInfo !== '') {
+        return '/' . ltrim($pathInfo, '/');
+    }
+
+    if ($scriptName !== '' && strpos($requestPath, $scriptName) === 0) {
+        $route = substr($requestPath, strlen($scriptName));
+
+        return '/' . ltrim($route, '/');
+    }
+
+    return '/' . ltrim($requestPath, '/');
 }
 
-if ($endpoint === '' || $endpoint === false) {
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$endpoint = resolveRoutePath();
+
+if ($endpoint === '') {
     $endpoint = '/';
 }
 
+if ($endpoint !== '/' && substr($endpoint, -1) === '/') {
+    $endpoint = rtrim($endpoint, '/');
+}
+
 if ($method === 'POST' && $endpoint === '/login') {
-    require_once __DIR__ . '/../controllers/AuthController.php';
     login();
     exit;
 }
 
 if ($method === 'POST' && $endpoint === '/register') {
-    require_once __DIR__ . '/../controllers/AuthController.php';
     register();
+    exit;
+}
+
+if ($method === 'POST' && $endpoint === '/logout') {
+    logout();
+    exit;
+}
+
+if ($method === 'GET' && $endpoint === '/profile/me') {
+    getProfile();
+    exit;
+}
+
+if (preg_match('#^/users/role/(\d+)$#', $endpoint, $matches) && $method === 'GET') {
+    listUsersByRole((int) $matches[1]);
     exit;
 }
 
@@ -46,7 +77,7 @@ if ($method === 'POST' && $endpoint === '/tasks') {
 }
 
 if ($method === 'DELETE' && $endpoint === '/tasks') {
-    $user = checkRole([1]);
+    $user = checkRole([1, 2]);
 
     if ($user === null) {
         exit;
@@ -123,7 +154,7 @@ if ($method === 'DELETE' && $endpoint === '/tasks/comments') {
 }
 
 if ($method === 'GET' && $endpoint === '/tasks/view') {
-    $user = checkRole([1, 2, 3, 4]);
+    $user = checkAuth();
 
     if ($user === null) {
         exit;
@@ -134,7 +165,7 @@ if ($method === 'GET' && $endpoint === '/tasks/view') {
 }
 
 if ($method === 'GET' && $endpoint === '/tasks/all') {
-    $user = checkRole([1, 2, 3]);
+    $user = checkAuth();
 
     if ($user === null) {
         exit;
@@ -145,13 +176,12 @@ if ($method === 'GET' && $endpoint === '/tasks/all') {
 }
 
 if ($method === 'GET' && preg_match('#^/tasks/(\d+)$#', $endpoint, $matches)) {
-    require_once __DIR__ . '/../controllers/TaskController.php';
     getTaskById((int) $matches[1]);
     exit;
 }
 
 if ($method === 'GET' && $endpoint === '/tasks/assigned') {
-    $user = checkRole([1, 2, 3, 4]);
+    $user = checkAuth();
 
     if ($user === null) {
         exit;
@@ -183,20 +213,13 @@ if ($method === 'PATCH' && $endpoint === '/tasks/status') {
     exit;
 }
 
-if ($method === 'PUT' && $endpoint === '/tasks/status') {
-    require_once __DIR__ . '/../controllers/TaskController.php';
-    updateTaskStatus();
-    exit;
-}
-
-if ($method === 'PUT' && $endpoint === '/profile/update') {
+if (($method === 'POST' || $method === 'PUT' || $method === 'PATCH') && $endpoint === '/profile/update') {
     $user = checkAuth();
 
     if ($user === null) {
         exit;
     }
 
-    require_once __DIR__ . '/../controllers/AuthController.php';
     updateProfile();
     exit;
 }

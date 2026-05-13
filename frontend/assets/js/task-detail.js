@@ -191,10 +191,12 @@
 
     function renderCommentItem(comment) {
         const isOwner = Number(comment.user_id) === Number(state.user.user_id);
-        const actions = isOwner
+        const isChairman = Number(state.user.role_id) === 1;
+        const canDelete = isOwner || isChairman;
+        const actions = canDelete
             ? `
                 <div class=\"comment-actions\">
-                    <button class=\"comment-action\" data-action=\"edit\">Edit</button>
+                    ${isOwner ? '<button class="comment-action" data-action="edit">Edit</button>' : ""}
                     <button class=\"comment-action danger\" data-action=\"delete\">Delete</button>
                 </div>
               `
