@@ -1,62 +1,76 @@
-requireAuth();
-
-const user = getUser();
-
-document.getElementById("userName").textContent = user.name;
-document.getElementById("name").textContent = user.name;
-document.getElementById("editName").value = user.name;
-document.getElementById("avatarLetter").textContent = user.name.charAt(0);
-
-document.getElementById("userId").textContent = "#" + user.user_id;
-
-/* ROLE */
-let roleText = "";
-if (user.role_id == 1) roleText = "Chairman";
-if (user.role_id == 2) roleText = "Director";
-if (user.role_id == 3) roleText = "Deputy Director";
-if (user.role_id == 4) roleText = "Assistant Director";
-
-document.getElementById("role").textContent = roleText;
-document.getElementById("roleText").value = roleText;
-
-/* EMAIL */
-document.getElementById("email").value = user.email || "N/A";
-
-/* UPDATE */
-async function updateProfile() {
-    const name = document.getElementById("editName").value;
-
-    const res = await fetch("/TMS/nysc-task-management-system/backend/routes/api.php/profile/update", {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            "user_id": user.user_id
-        },
-        body: JSON.stringify({ name })
-    });
-
-    const data = await res.json();
-
-    if (data.status === "success") {
-        alert("Profile updated!");
-
-        user.name = name;
-        localStorage.setItem("user", JSON.stringify(user));
-        location.reload();
-    } else {
-        alert("Error updating");
+(function initProfilePage() {
+    if (!requireAuth()) {
+        return;
     }
-}
 
-/* NAV */
-function goDashboard() {
-    window.location.href = "dashboard.html";
-}
+    const user = getUser();
+    if (!user) {
+        window.location.href = "./login.html";
+        return;
+    }
 
-function goTasks() {
-    window.location.href = "tasks.html";
-}
+    const roleLabel = user.role_name || getRoleDescription(user.role_id).title;
+    const nameField = document.getElementById("name");
+    const editNameField = document.getElementById("editName");
+    const emailField = document.getElementById("email");
+    const roleField = document.getElementById("role");
+    const roleTextField = document.getElementById("roleText");
+    const userNameField = document.getElementById("userName");
+    const avatarLetterField = document.getElementById("avatarLetter");
+    const userIdField = document.getElementById("userId");
 
-function goCreate() {
-    window.location.href = "create-task.html";
-}
+    if (userNameField) userNameField.textContent = `${user.name} • ${user.email}`;
+    if (nameField) nameField.textContent = user.name;
+    if (editNameField) editNameField.value = user.name;
+    if (avatarLetterField) avatarLetterField.textContent = user.name.charAt(0);
+    if (userIdField) userIdField.textContent = `#${user.user_id}`;
+    if (roleField) roleField.textContent = roleLabel;
+    if (roleTextField) roleTextField.value = roleLabel;
+    if (emailField) emailField.value = user.email || "N/A";
+
+    window.updateProfile = async function updateProfile() {
+        const name = editNameField ? editNameField.value.trim() : "";
+
+        const res = await fetch("/TMS/nysc-task-management-system/backend/routes/api.php/profile/update", {
+            method: "PUT",
+            headers: buildAuthHeaders({
+                "Content-Type": "application/json"
+            }),
+            body: JSON.stringify({ name })
+        });
+
+        const data = await res.json();
+
+        if (data.status === "success") {
+            const roles = getAuthorizedRoles();
+            const selectedRole = getSelectedRole() || roles[0] || null;
+
+            setAuthState({
+                user: {
+                    ...user,
+                    name
+                },
+                roles,
+                selectedRole,
+                authenticatedAt: new Date().toISOString(),
+            });
+
+            alert("Profile updated!");
+            location.reload();
+        } else {
+            alert(data.message || "Error updating");
+        }
+    };
+
+    window.goDashboard = function goDashboard() {
+        window.location.href = "./dashboard.html";
+    };
+
+    window.goTasks = function goTasks() {
+        window.location.href = "./tasks.html";
+    };
+
+    window.goCreate = function goCreate() {
+        window.location.href = "./create-task.html";
+    };
+})();

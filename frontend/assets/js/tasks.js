@@ -12,12 +12,10 @@ async function loadTasks() {
         ? API + "/tasks/my"
         : API + "/tasks/all";
 
+    const authHeaders = buildAuthHeaders();
+
     const res = await fetch(url, {
-        headers: {
-            "Content-Type": "application/json",
-            "user_id": user.user_id,
-            "role_id": user.role_id
-        }
+        headers: authHeaders
     });
 
     const data = await res.json();

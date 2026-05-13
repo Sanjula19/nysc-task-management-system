@@ -38,11 +38,9 @@ document.getElementById("taskForm").addEventListener("submit", async function(e)
     // CREATE TASK
     const res = await fetch(API + "/tasks", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "user_id": user.user_id,
-            "role_id": user.role_id
-        },
+        headers: buildAuthHeaders({
+            "Content-Type": "application/json"
+        }),
         body: JSON.stringify({
             title, description, priority, deadline
         })
@@ -60,11 +58,9 @@ document.getElementById("taskForm").addEventListener("submit", async function(e)
     // ASSIGN USERS
     await fetch(API + "/tasks/assign", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "user_id": user.user_id,
-            "role_id": user.role_id
-        },
+        headers: buildAuthHeaders({
+            "Content-Type": "application/json"
+        }),
         body: JSON.stringify({
             task_id: taskId,
             user_ids: checked

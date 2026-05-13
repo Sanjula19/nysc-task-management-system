@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NYSC TMS | Federal Task Management Portal</title>
+
+    <link rel="stylesheet" href="./assets/css/base.css">
+    <link rel="stylesheet" href="./assets/css/login.css">
+</head>
+<body class="login-page">
+    <main class="portal-shell">
+        <section class="portal-card" aria-labelledby="portalTitle">
+            <div class="portal-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <path d="M12 3l8 4v10H4V7l8-4Z"></path>
+                    <path d="M6 7h12"></path>
+                    <path d="M7 10h10"></path>
+                    <path d="M8 13h8"></path>
+                    <path d="M9 16h6"></path>
+                </svg>
+            </div>
+
+            <header class="portal-header">
+                <p class="portal-kicker">NYSC TMS</p>
+                <h1 id="portalTitle">Federal Task Management Portal</h1>
+                <p class="portal-subtitle">Secure official access for government task operations.</p>
+            </header>
+
+            <div id="statusMessage" class="status-banner" role="status" aria-live="polite">
+                Authenticate with your official email and password to continue.
+            </div>
+
+            <form id="loginForm" class="portal-form" novalidate>
+                <div class="field-group">
+                    <label for="email">Official Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        autocomplete="username"
+                        inputmode="email"
+                        placeholder="official.name@nysc.gov"
+                        required
+                    >
+                </div>
+
+                <div class="field-group">
+                    <label for="password">Password</label>
+                    <div class="password-field">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            autocomplete="current-password"
+                            placeholder="Enter password"
+                            required
+                        >
+                        <button
+                            type="button"
+                            id="togglePassword"
+                            class="icon-button"
+                            aria-label="Show password"
+                            aria-pressed="false"
+                        ></button>
+                    </div>
+                </div>
+
+                <button type="submit" id="authenticateBtn" class="primary-btn">
+                    Authenticate Access
+                </button>
+            </form>
+
+            <section id="roleSection" class="role-section" aria-hidden="true">
+                <div class="role-section__divider" aria-hidden="true"></div>
+
+                <div class="role-section__header">
+                    <p class="section-kicker">SELECT AUTHORIZED ACCOUNT</p>
+                    <p id="authorizedUserSummary" class="role-summary"></p>
+                </div>
+
+                <div id="roleGrid" class="role-grid" role="radiogroup" aria-label="Authorized roles"></div>
+
+                <button type="button" id="continueBtn" class="continue-btn" disabled>
+                    Continue to Dashboard
+                </button>
+            </section>
+
+            <p class="auth-switch">
+                Not registered yet?
+                <a href="./signup.html">Create Official Account</a>
+            </p>
+        </section>
+    </main>
+
+    <script src="./assets/js/auth.js"></script>
+</body>
+</html>

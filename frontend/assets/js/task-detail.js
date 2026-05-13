@@ -372,10 +372,7 @@
     }
 
     function buildAuthHeaders() {
-        return {
-            "user_id": String(state.user.user_id || ""),
-            "role_id": String(state.user.role_id || "")
-        };
+        return window.buildAuthHeaders();
     }
 
     function escapeHtml(value) {

@@ -1,18 +1,16 @@
 :root {
-    --portal-bg: #f4f7fb;
-    --portal-surface: rgba(255, 255, 255, 0.92);
-    --portal-surface-strong: #ffffff;
+    --portal-bg: #f6f8fb;
+    --portal-surface: #ffffff;
+    --portal-surface-soft: #fbfcfe;
     --portal-border: #dbe3ef;
     --portal-text: #10243e;
-    --portal-muted: #687b96;
-    --portal-subtle: #9ba8ba;
-    --portal-navy: #17324d;
-    --portal-green: #1e5d45;
-    --portal-red: #a71f1f;
-    --portal-red-dark: #8c1818;
+    --portal-muted: #6b7b93;
+    --portal-subtle: #9aa8bc;
+    --portal-red: #a81f1f;
+    --portal-red-dark: #8e1717;
     --portal-red-pale: #fbf2f2;
-    --portal-shadow: 0 22px 50px rgba(16, 36, 62, 0.14);
-    --portal-shadow-soft: 0 10px 22px rgba(16, 36, 62, 0.08);
+    --portal-shadow: 0 18px 45px rgba(15, 30, 54, 0.12);
+    --portal-shadow-soft: 0 8px 20px rgba(15, 30, 54, 0.08);
 }
 
 * {
@@ -24,52 +22,46 @@ body {
     min-height: 100%;
 }
 
-body.login-page {
+body.signup-page {
     margin: 0;
     font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     color: var(--portal-text);
     background:
-        radial-gradient(circle at top, rgba(23, 50, 77, 0.08), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(30, 93, 69, 0.08), transparent 24%),
-        linear-gradient(180deg, #fafbfd 0%, var(--portal-bg) 100%);
+        radial-gradient(circle at top, rgba(168, 31, 31, 0.06), transparent 30%),
+        linear-gradient(180deg, #fbfcfe 0%, var(--portal-bg) 100%);
 }
 
-.portal-shell,
-.auth-shell {
+.signup-shell {
     min-height: 100vh;
     display: grid;
     place-items: center;
     padding: 32px 20px;
 }
 
-.portal-card,
-.auth-card {
-    width: min(100%, 430px);
+.signup-card {
+    width: min(100%, 460px);
     background: var(--portal-surface);
     border: 1px solid rgba(219, 227, 239, 0.9);
-    border-radius: 28px;
+    border-radius: 26px;
+    padding: 30px 28px 24px;
     box-shadow: var(--portal-shadow);
-    backdrop-filter: blur(14px);
-    padding: 28px 28px 24px;
     text-align: center;
 }
 
-.portal-mark,
 .card-mark {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 16px;
+    width: 66px;
+    height: 66px;
+    margin: 0 auto 18px;
     border-radius: 18px;
+    background: var(--portal-red-pale);
     display: grid;
     place-items: center;
-    background: linear-gradient(180deg, #f7f5f1 0%, #eff4f0 100%);
-    box-shadow: inset 0 0 0 1px rgba(23, 50, 77, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(168, 31, 31, 0.06);
 }
 
-.portal-mark svg,
 .card-mark svg {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     fill: none;
     stroke: var(--portal-red);
     stroke-width: 1.7;
@@ -77,33 +69,29 @@ body.login-page {
     stroke-linejoin: round;
 }
 
-.portal-header,
 .card-header {
     display: grid;
     gap: 8px;
     margin-bottom: 16px;
 }
 
-.portal-kicker,
 .card-brand {
     margin: 0;
-    color: var(--portal-red);
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     font-size: 0.78rem;
     font-weight: 800;
+    color: var(--portal-red);
 }
 
-.portal-header h1,
 .card-header h1 {
     margin: 0;
-    font-size: 1.8rem;
+    font-size: 1.72rem;
     line-height: 1.15;
     letter-spacing: -0.03em;
     color: var(--portal-text);
 }
 
-.portal-subtitle,
 .card-subtitle {
     margin: 0;
     color: var(--portal-muted);
@@ -117,7 +105,7 @@ body.login-page {
     padding: 13px 14px;
     border-radius: 14px;
     border: 1px solid var(--portal-border);
-    background: rgba(251, 252, 254, 0.9);
+    background: var(--portal-surface-soft);
     color: var(--portal-muted);
     font-size: 0.94rem;
     line-height: 1.45;
@@ -127,7 +115,7 @@ body.login-page {
 
 .status-banner[data-tone="success"] {
     background: var(--portal-red-pale);
-    border-color: rgba(167, 31, 31, 0.14);
+    border-color: rgba(168, 31, 31, 0.14);
     color: var(--portal-red-dark);
 }
 
@@ -137,10 +125,9 @@ body.login-page {
     color: #a81818;
 }
 
-.portal-form,
-.auth-form {
+.signup-form {
     display: grid;
-    gap: 16px;
+    gap: 14px;
     text-align: left;
 }
 
@@ -168,11 +155,20 @@ body.login-page {
     padding: 0 16px;
     font-size: 1rem;
     outline: none;
-    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
 .field-group select {
     appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, #97a6ba 50%),
+        linear-gradient(135deg, #97a6ba 50%, transparent 50%);
+    background-position:
+        calc(100% - 18px) 22px,
+        calc(100% - 12px) 22px;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 42px;
 }
 
 .field-group input::placeholder {
@@ -181,8 +177,8 @@ body.login-page {
 
 .field-group input:focus,
 .field-group select:focus {
-    border-color: rgba(167, 31, 31, 0.35);
-    box-shadow: 0 0 0 4px rgba(167, 31, 31, 0.09);
+    border-color: rgba(168, 31, 31, 0.35);
+    box-shadow: 0 0 0 4px rgba(168, 31, 31, 0.09);
 }
 
 .field-group input.is-invalid,
@@ -230,12 +226,18 @@ body.login-page {
 .icon-button:hover,
 .icon-button:focus-visible {
     color: var(--portal-red);
-    background: rgba(167, 31, 31, 0.08);
+    background: rgba(168, 31, 31, 0.08);
     outline: none;
 }
 
-.primary-btn,
-.continue-btn {
+.field-error {
+    min-height: 18px;
+    font-size: 0.82rem;
+    color: #a81818;
+    line-height: 1.35;
+}
+
+.primary-btn {
     width: 100%;
     min-height: 56px;
     border: 0;
@@ -245,134 +247,24 @@ body.login-page {
     font-weight: 800;
     cursor: pointer;
     transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, opacity 160ms ease;
-}
-
-.primary-btn {
     color: #fff;
-    background: linear-gradient(180deg, #b21f1f 0%, var(--portal-red-dark) 100%);
-    box-shadow: 0 12px 24px rgba(167, 31, 31, 0.22);
+    background: linear-gradient(180deg, #b01f1f 0%, var(--portal-red-dark) 100%);
+    box-shadow: 0 12px 24px rgba(168, 31, 31, 0.24);
 }
 
 .primary-btn:hover,
 .primary-btn:focus-visible {
-    background: linear-gradient(180deg, #bc2626 0%, #951b1b 100%);
-    box-shadow: 0 14px 28px rgba(167, 31, 31, 0.28);
+    background: linear-gradient(180deg, #ba2525 0%, #961c1c 100%);
+    box-shadow: 0 14px 28px rgba(168, 31, 31, 0.3);
     transform: translateY(-1px);
     outline: none;
 }
 
-.primary-btn:disabled,
-.continue-btn:disabled {
+.primary-btn:disabled {
     opacity: 0.55;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
-}
-
-.role-section {
-    display: none;
-    margin-top: 18px;
-    text-align: center;
-}
-
-.role-section.is-visible {
-    display: grid;
-    gap: 16px;
-}
-
-.role-section__divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(219, 227, 239, 1) 50%, transparent 100%);
-}
-
-.role-section__header {
-    display: grid;
-    gap: 8px;
-}
-
-.section-kicker {
-    margin: 0;
-    color: var(--portal-subtle);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-size: 0.76rem;
-    font-weight: 800;
-}
-
-.role-summary {
-    margin: 0;
-    color: var(--portal-muted);
-    font-size: 0.92rem;
-    line-height: 1.45;
-}
-
-.role-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-}
-
-.role-card {
-    min-height: 58px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid #e4e9f2;
-    background: linear-gradient(180deg, #f8fafd 0%, #f1f5fa 100%);
-    cursor: pointer;
-    display: grid;
-    align-content: center;
-    gap: 3px;
-    transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-
-.role-card:hover {
-    border-color: rgba(167, 31, 31, 0.28);
-    background: #fff;
-    box-shadow: var(--portal-shadow-soft);
-    transform: translateY(-1px);
-}
-
-.role-card.is-selected {
-    border-color: rgba(167, 31, 31, 0.7);
-    background: var(--portal-red-pale);
-    box-shadow: 0 0 0 4px rgba(167, 31, 31, 0.09);
-}
-
-.role-radio {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.role-card__title {
-    font-size: 0.88rem;
-    font-weight: 800;
-    color: var(--portal-text);
-}
-
-.role-card__copy {
-    display: block;
-    font-size: 0.78rem;
-    line-height: 1.3;
-    color: var(--portal-muted);
-}
-
-.role-card:focus-within {
-    box-shadow: 0 0 0 4px rgba(167, 31, 31, 0.12), var(--portal-shadow-soft);
-}
-
-.continue-btn {
-    color: #fff;
-    background: linear-gradient(180deg, #b21f1f 0%, #8f1818 100%);
-    box-shadow: 0 12px 24px rgba(167, 31, 31, 0.22);
-}
-
-.continue-btn:hover,
-.continue-btn:focus-visible {
-    background: linear-gradient(180deg, #bc2626 0%, #951b1b 100%);
-    box-shadow: 0 14px 28px rgba(167, 31, 31, 0.28);
-    transform: translateY(-1px);
-    outline: none;
 }
 
 .auth-switch {
@@ -395,18 +287,12 @@ body.login-page {
 }
 
 @media (max-width: 520px) {
-    .portal-card,
-    .auth-card {
+    .signup-card {
         padding: 24px 18px 20px;
         border-radius: 22px;
     }
 
-    .portal-header h1,
     .card-header h1 {
-        font-size: 1.58rem;
-    }
-
-    .role-grid {
-        grid-template-columns: 1fr;
+        font-size: 1.52rem;
     }
 }

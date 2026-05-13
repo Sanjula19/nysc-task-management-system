@@ -306,10 +306,11 @@ function assignTask(): void
 
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         $userCheckStmt = $pdo->prepare(
-            "SELECT user_id
-             FROM users
-             WHERE role_id = 4
-             AND user_id IN ({$placeholders})"
+            "SELECT u.user_id
+             FROM users u
+             INNER JOIN user_roles ur ON ur.user_id = u.user_id
+             WHERE ur.role_id = 4
+             AND u.user_id IN ({$placeholders})"
         );
         $userCheckStmt->execute($userIds);
 

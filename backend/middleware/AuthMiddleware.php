@@ -2,6 +2,8 @@
 
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/../config/db.php';
+
 function getRequestHeaders(): array
 {
     if (function_exists('getallheaders')) {
@@ -58,21 +60,58 @@ function sendForbiddenResponse(): void
     ]);
 }
 
+function sendServerErrorResponse(): void
+{
+    http_response_code(500);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Authentication service unavailable',
+    ]);
+}
+
 function checkAuth(): ?array
 {
     $headers = getRequestHeaders();
-    $userId = getHeaderValue($headers, ['user_id', 'x_user_id']);
-    $roleId = getHeaderValue($headers, ['role_id', 'x_role_id']);
+    $userId = (int) (getHeaderValue($headers, ['user_id', 'x_user_id']) ?? 0);
+    $roleId = (int) (getHeaderValue($headers, ['role_id', 'x_role_id', 'active_role_id', 'x_active_role_id']) ?? 0);
 
-    if ($userId === null || $roleId === null) {
+    if ($userId <= 0 || $roleId <= 0) {
         sendUnauthorizedResponse();
         return null;
     }
 
-    return [
-        'user_id' => (int) $userId,
-        'role_id' => (int) $roleId,
-    ];
+    try {
+        $pdo = getPDO();
+
+        $stmt = $pdo->prepare(
+            'SELECT u.user_id, r.role_id
+             FROM users u
+             INNER JOIN user_roles ur ON ur.user_id = u.user_id
+             INNER JOIN roles r ON r.role_id = ur.role_id
+             WHERE u.user_id = :user_id
+               AND r.role_id = :role_id
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+            'role_id' => $roleId,
+        ]);
+
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            sendForbiddenResponse();
+            return null;
+        }
+
+        return [
+            'user_id' => (int) $user['user_id'],
+            'role_id' => (int) $user['role_id'],
+        ];
+    } catch (Throwable $e) {
+        sendServerErrorResponse();
+        return null;
+    }
 }
 
 function checkRole(array $allowedRoles): ?array

@@ -1,6 +1,8 @@
 <?php
 
 header('Content-Type: application/json');
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
 
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../controllers/TaskController.php';
@@ -187,13 +189,6 @@ if ($method === 'PUT' && $endpoint === '/tasks/status') {
     exit;
 }
 
-echo json_encode([
-    'status' => 'success',
-    'message' => 'API working',
-    'method' => $method,
-    'endpoint' => $endpoint,
-]);
-
 if ($method === 'PUT' && $endpoint === '/profile/update') {
     $user = checkAuth();
 
@@ -205,3 +200,10 @@ if ($method === 'PUT' && $endpoint === '/profile/update') {
     updateProfile();
     exit;
 }
+
+echo json_encode([
+    'status' => 'success',
+    'message' => 'API working',
+    'method' => $method,
+    'endpoint' => $endpoint,
+]);

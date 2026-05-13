@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NYSC TMS | Create Official Account</title>
+
+    <link rel="stylesheet" href="./assets/css/base.css">
+    <link rel="stylesheet" href="./assets/css/signup.css">
+</head>
+<body class="signup-page">
+    <main class="signup-shell">
+        <section class="signup-card" aria-labelledby="signupHeading">
+            <div class="card-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <path d="M4 10h16v2H4z"></path>
+                    <path d="M5 10V8l7-4 7 4v2"></path>
+                    <path d="M6 12v6"></path>
+                    <path d="M10 12v6"></path>
+                    <path d="M14 12v6"></path>
+                    <path d="M18 12v6"></path>
+                    <path d="M3 18h18"></path>
+                </svg>
+            </div>
+
+            <header class="card-header">
+                <p class="card-brand">NYSC TMS</p>
+                <h1 id="signupHeading">Create Official Account</h1>
+                <p class="card-subtitle">Register a secure official profile for federal task management access.</p>
+            </header>
+
+            <div id="signupStatus" class="status-banner" role="status" aria-live="polite">
+                Complete the form to create a verified account.
+            </div>
+
+            <form id="signupForm" class="signup-form" novalidate>
+                <div class="field-group">
+                    <label for="name">Official Full Name</label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        autocomplete="name"
+                        placeholder="Enter official full name"
+                        required
+                    >
+                    <span class="field-error" id="nameError" aria-live="polite"></span>
+                </div>
+
+                <div class="field-group">
+                    <label for="email">Official Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        autocomplete="email"
+                        inputmode="email"
+                        placeholder="official.name@nysc.gov"
+                        required
+                    >
+                    <span class="field-error" id="emailError" aria-live="polite"></span>
+                </div>
+
+                <div class="field-group">
+                    <label for="role">Select Role</label>
+                    <select id="role" name="role" required>
+                        <option value="">Choose official role</option>
+                        <option value="1">Chairman</option>
+                        <option value="2">Director</option>
+                        <option value="3">Deputy Director</option>
+                        <option value="4">Assistant Director</option>
+                    </select>
+                    <span class="field-error" id="roleError" aria-live="polite"></span>
+                </div>
+
+                <div class="field-group">
+                    <label for="password">Password</label>
+                    <div class="password-field">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            autocomplete="new-password"
+                            placeholder="Enter password"
+                            required
+                        >
+                        <button type="button" id="togglePassword" class="icon-button" aria-label="Show password" aria-pressed="false"></button>
+                    </div>
+                    <span class="field-error" id="passwordError" aria-live="polite"></span>
+                </div>
+
+                <div class="field-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <div class="password-field">
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            autocomplete="new-password"
+                            placeholder="Confirm password"
+                            required
+                        >
+                    </div>
+                    <span class="field-error" id="confirmPasswordError" aria-live="polite"></span>
+                </div>
+
+                <button type="submit" id="signupBtn" class="primary-btn">Create Official Account</button>
+            </form>
+
+            <p class="auth-switch">
+                Already registered?
+                <a href="./login.html">Sign In</a>
+            </p>
+        </section>
+    </main>
+
+    <script src="./assets/js/signup.js"></script>
+</body>
+</html>
